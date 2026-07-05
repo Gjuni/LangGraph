@@ -47,10 +47,14 @@ def _matches_query(title: str, tokens: list[str]) -> bool:
     return False
 
 
-def search_security_news(query: str, limit: int = 15) -> list[dict]:
-    """여러 보안 뉴스 사이트의 최신 기사 중 검색어와 관련된 기사를 찾아 제목/링크/날짜/본문을 수집한다."""
+def search_security_news(query: str, limit: int = 15, sites: list[str] | None = None) -> list[dict]:
+    """여러 보안 뉴스 사이트의 최신 기사 중 검색어와 관련된 기사를 찾아 제목/링크/날짜/본문을 수집한다.
+
+    sites를 지정하면 오케스트레이션 에이전트가 정한 대상 사이트만 검색한다(추후 사이트별 병렬 스크랩의 기반).
+    """
+    sites = sites or SECURITY_SITES
     tokens = [t.lower() for t in query.split() if len(t) > 1] or [query.strip().lower()]
-    per_site_limit = max(2, limit // len(SECURITY_SITES))
+    per_site_limit = max(2, limit // len(sites))
 
     candidates: list[dict] = []
     seen: set[str] = set()
@@ -59,7 +63,7 @@ def search_security_news(query: str, limit: int = 15) -> list[dict]:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
-        for site in SECURITY_SITES:
+        for site in sites:
             domain = urlparse(site).netloc.replace("www.", "")
             found = 0
             try:
